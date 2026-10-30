@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hardened P2P Session Chat</title>
+  <!-- PeerJS with Subresource Integrity (SRI) Pinning -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js" 
+          integrity="sha384-AnT3I8p0qTToR6NqT+X0EsnvO+6QIn41/M9wI/kI+JkE4BIn0PzW2wT3L1S8gZ10" 
+          crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --accent: #007bff;
+      --text: #e0e0e0;
+      --border: #333;
+      --danger: #dc3545;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      height: 90vh;
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+    }
+
+    .header {
+      padding: 15px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .header h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .setup-panel {
+      padding: 15px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    input[type="text"], input[type="password"] {
+      flex: 1;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background-color: #2a2a2a;
+      color: #fff;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      background-color: var(--accent);
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .id-display {
+      font-size: 0.85rem;
+      color: #aaa;
+      word-break: break-all;
+      user-select: all;
+      background: #2a2a2a;
+      padding: 8px;
+      border-radius: 4px;
+    }
+
+    .chat-box {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      word-wrap: break-word;
+    }
+
+    .message.received {
+      background-color: #2c2c2c;
+      align-self: flex-start;
+    }
+
+    .message.sent {
+      background-color: var(--accent);
+      align-self: flex-end;
+    }
+
+    .message .sender {
+      font-size: 0.75rem;
+      color: #bbb;
+      margin-bottom: 2px;
+    }
+
+    .system-msg {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #888;
+    }
+
+    .footer {
+      padding: 15px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h2>Secure Session Chat</h2>
+  </div>
+
+  <div class="setup-panel">
+    <input type="text" id="username" placeholder="Display Name" maxlength="25">
+    
+    <div class="input-group">
+      <button id="hostBtn">Host Private Session</button>
+    </div>
+
+    <div class="input-group">
+      <input type="text" id="joinId" placeholder="Host Peer ID">
+      <input type="password" id="joinPasscode" placeholder="Passcode" maxlength="12">
+      <button id="joinBtn">Connect</button>
+    </div>
+
+    <div id="peerIdDisplay" class="id-display" style="display:none;">
+      <div><strong>Host ID:</strong> <span id="myPeerId">...</span></div>
+      <div><strong>Room Passcode:</strong> <span id="myPasscode">...</span></div>
+    </div>
+  </div>
+
+  <div class="chat-box" id="chatBox">
+    <div class="system-msg">Set display name and host or connect to start.</div>
+  </div>
+
+  <div class="footer">
+    <input type="text" id="messageInput" placeholder="Type a message..." maxlength="1000" disabled>
+    <button id="sendBtn" disabled>Send</button>
+  </div>
+</div>
+
+<script>
+  let peer = null;
+  let connections = [];
+  let hostConn = null;
+  let isHost = false;
+  let roomPasscode = null;
+  let lastSentTime = 0;
+
+  const usernameInput = document.getElementById('username');
+  const hostBtn = document.getElementById('hostBtn');
+  const joinBtn = document.getElementById('joinBtn');
+  const joinIdInput = document.getElementById('joinId');
+  const joinPasscodeInput = document.getElementById('joinPasscode');
+  const peerIdDisplay = document.getElementById('peerIdDisplay');
+  const myPeerIdSpan = document.getElementById('myPeerId');
+  const myPasscodeSpan = document.getElementById('myPasscode');
+  const chatBox = document.getElementById('chatBox');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  function generatePasscode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  }
+
+  function initPeer(callback) {
+    if (peer) return callback();
+    peer = new Peer();
+
+    peer.on('open', (id) => {
+      myPeerIdSpan.textContent = id;
+      callback();
+    });
+
+    peer.on('error', (err) => {
+      appendSystemMessage(`Connection error: ${err.type}`);
+    });
+  }
+
+  // Host setup with passcode enforcement
+  hostBtn.addEventListener('click', () => {
+    const username = getUsername();
+    if (!username) return;
+
+    initPeer(() => {
+      isHost = true;
+      roomPasscode = generatePasscode();
+      myPasscodeSpan.textContent = roomPasscode;
+      peerIdDisplay.style.display = 'block';
+
+      lockSetup();
+      enableChatInput();
+      appendSystemMessage('Private session hosted. Share your Host ID and Passcode.');
+
+      peer.on('connection', (conn) => {
+        conn.on('open', () => {
+          // Verify Passcode authentication before granting chat access
+          if (!conn.metadata || conn.metadata.passcode !== roomPasscode) {
+            conn.send({ type: 'auth_fail', text: 'Invalid room passcode.' });
+            setTimeout(() => conn.close(), 500);
+            return;
+          }
+
+          connections.push(conn);
+          appendSystemMessage(`${conn.metadata.username} joined.`);
+          
+          conn.on('data', (data) => handleHostIncomingData(conn, data));
+          conn.on('close', () => {
+            connections = connections.filter(c => c !== conn);
+            appendSystemMessage(`${conn.metadata.username || 'A peer'} disconnected.`);
+          });
+        });
+      });
+    });
+  });
+
+  // Client connection with credential validation
+  joinBtn.addEventListener('click', () => {
+    const username = getUsername();
+    const targetId = joinIdInput.value.trim();
+    const passcode = joinPasscodeInput.value.trim().toUpperCase();
+
+    if (!username || !targetId || !passcode) {
+      alert('Please fill in Username, Host ID, and Passcode.');
+      return;
+    }
+
+    initPeer(() => {
+      isHost = false;
+      hostConn = peer.connect(targetId, {
+        metadata: { username, passcode }
+      });
+
+      hostConn.on('open', () => {
+        lockSetup();
+        enableChatInput();
+        appendSystemMessage('Connected securely to host.');
+      });
+
+      hostConn.on('data', (data) => {
+        if (data.type === 'auth_fail') {
+          alert(data.text);
+          hostConn.close();
+          location.reload();
+          return;
+        }
+        handleClientIncomingData(data);
+      });
+
+      hostConn.on('close', () => appendSystemMessage('Disconnected from host.'));
+    });
+  });
+
+  function handleHostIncomingData(senderConn, data) {
+    if (data.type !== 'msg' || typeof data.text !== 'string') return;
+    
+    const cleanText = data.text.trim().substring(0, 1000);
+    const cleanSender = senderConn.metadata.username.substring(0, 25);
+    
+    if (!cleanText) return;
+
+    const payload = { type: 'msg', sender: cleanSender, text: cleanText };
+    
+    // Broadcast to all connected clients
+    connections.forEach(conn => {
+      if (conn.open) conn.send(payload);
+    });
+
+    appendMessage(cleanSender, cleanText, false);
+  }
+
+  function handleClientIncomingData(data) {
+    if (data.type !== 'msg') return;
+    const currentUsername = usernameInput.value.trim();
+    const isSelf = data.sender === currentUsername;
+    appendMessage(isSelf ? 'You' : data.sender, data.text, isSelf);
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+  function sendMessage() {
+    const now = Date.now();
+    if (now - lastSentTime < 300) return; // Rate limiting (max 1 msg per 300ms)
+    
+    const text = messageInput.value.trim().substring(0, 1000);
+    if (!text) return;
+
+    lastSentTime = now;
+    const username = usernameInput.value.trim().substring(0, 25);
+    const payload = { type: 'msg', sender: username, text: text };
+
+    if (isHost) {
+      connections.forEach(conn => { if (conn.open) conn.send(payload); });
+      appendMessage('You', text, true);
+    } else if (hostConn && hostConn.open) {
+      hostConn.send(payload);
+    }
+
+    messageInput.value = '';
+  }
+
+  // Safe DOM Rendering (Protects against DOM XSS)
+  function appendMessage(sender, text, isSelf) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${isSelf ? 'sent' : 'received'}`;
+
+    const senderDiv = document.createElement('div');
+    senderDiv.className = 'sender';
+    senderDiv.textContent = sender;
+
+    const textNode = document.createTextNode(text);
+
+    msgDiv.appendChild(senderDiv);
+    msgDiv.appendChild(textNode);
+    chatBox.appendChild(msgDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function appendSystemMessage(text) {
+    const sysDiv = document.createElement('div');
+    sysDiv.className = 'system-msg';
+    sysDiv.textContent = text;
+    chatBox.appendChild(sysDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function getUsername() {
+    const name = usernameInput.value.trim().substring(0, 25);
+    if (!name) {
+      alert('Please enter a display name.');
+      return null;
+    }
+    return name;
+  }
+
+  function lockSetup() {
+    hostBtn.disabled = true;
+    joinBtn.disabled = true;
+    usernameInput.disabled = true;
+    joinIdInput.disabled = true;
+    joinPasscodeInput.disabled = true;
+  }
+
+  function enableChatInput() {
+    messageInput.disabled = false;
+    sendBtn.disabled = false;
+  }
+</script>
+
+</body>
+</html>
