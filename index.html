@@ -3,319 +3,461 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hardened P2P Session Chat</title>
-  <!-- PeerJS with Subresource Integrity (SRI) Pinning -->
-  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js" 
-          integrity="sha384-AnT3I8p0qTToR6NqT+X0EsnvO+6QIn41/M9wI/kI+JkE4BIn0PzW2wT3L1S8gZ10" 
-          crossorigin="anonymous"></script>
+  <title>[P2P_CYBER_TERMINAL // TEAM-GRAY]</title>
   <style>
     :root {
-      --bg: #121212;
-      --card-bg: #1e1e1e;
-      --accent: #007bff;
-      --text: #e0e0e0;
-      --border: #333;
-      --danger: #dc3545;
+      --bg: #000000;
+      --panel-bg: #030a03;
+      --text: #00ff41;
+      --text-dim: #008f11;
+      --border: #00ff4144;
+      --border-bright: #00ff41;
+      --danger: #ff0033;
+      --font: "Courier New", Courier, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
       background-color: var(--bg);
       color: var(--text);
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      font-family: var(--font);
       height: 100vh;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 500px;
-      height: 90vh;
-      background-color: var(--card-bg);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      width: 100vw;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      border: 1px solid var(--border);
     }
 
-    .header {
-      padding: 15px;
-      border-bottom: 1px solid var(--border);
-      text-align: center;
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.35) 50%
+      ), linear-gradient(
+        90deg,
+        rgba(255, 0, 0, 0.03),
+        rgba(0, 255, 0, 0.01),
+        rgba(0, 0, 255, 0.03)
+      );
+      background-size: 100% 3px, 6px 100%;
+      pointer-events: none;
+      z-index: 10;
+      animation: crtFlicker 0.15s infinite;
     }
 
-    .header h2 {
-      margin: 0;
-      font-size: 1.2rem;
+    @keyframes crtFlicker {
+      0% { opacity: 0.97; }
+      50% { opacity: 1; }
+      100% { opacity: 0.98; }
     }
 
-    .setup-panel {
-      padding: 15px;
-      border-bottom: 1px solid var(--border);
+    .terminal-container {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-    }
-
-    .input-group {
-      display: flex;
+      height: 100vh;
+      width: 100vw;
+      padding: 10px;
       gap: 8px;
     }
 
-    input[type="text"], input[type="password"] {
-      flex: 1;
-      padding: 10px;
-      border-radius: 4px;
+    .header {
+      border: 1px solid var(--border-bright);
+      background: var(--panel-bg);
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 0 10px rgba(0, 255, 65, 0.15);
+    }
+
+    .brand-section {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .ascii-title {
+      font-size: 0.65rem;
+      line-height: 1;
+      white-space: pre;
+      color: var(--text);
+      text-shadow: 0 0 5px var(--text);
+      margin: 0;
+    }
+
+    .copyright-tag {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    .system-metrics {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      display: flex;
+      gap: 15px;
+      text-transform: uppercase;
+    }
+
+    .metric span {
+      color: var(--text);
+    }
+
+    .setup-panel {
       border: 1px solid var(--border);
-      background-color: #2a2a2a;
-      color: #fff;
+      background: var(--panel-bg);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input[type="text"], textarea {
+      background: #000;
+      border: 1px solid var(--text-dim);
+      color: var(--text);
+      font-family: var(--font);
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      outline: none;
+      text-shadow: 0 0 3px var(--text-dim);
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--border-bright);
+      box-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
+    }
+
+    #username {
+      width: 180px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 45px;
+      resize: none;
+      font-size: 0.7rem;
     }
 
     button {
-      padding: 10px 15px;
-      border: none;
-      border-radius: 4px;
-      background-color: var(--accent);
-      color: white;
+      background: #000;
+      border: 1px solid var(--border-bright);
+      color: var(--text);
+      font-family: var(--font);
+      padding: 6px 12px;
       cursor: pointer;
-      font-weight: bold;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.1s ease;
+      text-shadow: 0 0 3px var(--text);
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--text);
+      color: #000;
+      box-shadow: 0 0 10px var(--text);
+      text-shadow: none;
     }
 
     button:disabled {
-      opacity: 0.5;
+      border-color: var(--text-dim);
+      color: var(--text-dim);
       cursor: not-allowed;
-    }
-
-    .id-display {
-      font-size: 0.85rem;
-      color: #aaa;
-      word-break: break-all;
-      user-select: all;
-      background: #2a2a2a;
-      padding: 8px;
-      border-radius: 4px;
+      text-shadow: none;
     }
 
     .chat-box {
       flex: 1;
-      padding: 15px;
+      border: 1px solid var(--border);
+      background: #000;
+      padding: 12px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 6px;
+      box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.05);
     }
 
     .message {
-      max-width: 80%;
-      padding: 8px 12px;
-      border-radius: 6px;
-      word-wrap: break-word;
+      max-width: 90%;
+      line-height: 1.3;
+      word-break: break-word;
+      font-size: 0.85rem;
+      font-family: var(--font);
     }
 
     .message.received {
-      background-color: #2c2c2c;
       align-self: flex-start;
+      color: #aaffbb;
     }
 
     .message.sent {
-      background-color: var(--accent);
-      align-self: flex-end;
+      align-self: flex-start;
+      color: var(--text);
     }
 
     .message .sender {
       font-size: 0.75rem;
-      color: #bbb;
-      margin-bottom: 2px;
+      color: var(--text-dim);
+      display: inline-block;
+      margin-right: 6px;
     }
 
     .system-msg {
-      text-align: center;
-      font-size: 0.8rem;
-      color: #888;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      padding: 2px 0;
     }
 
     .footer {
-      padding: 15px;
-      border-top: 1px solid var(--border);
       display: flex;
       gap: 8px;
+      align-items: center;
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      padding: 6px;
+    }
+
+    .prompt-label {
+      font-size: 0.85rem;
+      color: var(--text-bright);
+      text-shadow: 0 0 4px var(--text);
+      white-space: nowrap;
+    }
+
+    .footer input[type="text"] {
+      flex: 1;
+      border: none;
+      background: transparent;
+      box-shadow: none !important;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #000;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--text-dim);
     }
   </style>
 </head>
 <body>
 
-<div class="container">
+<div class="terminal-container">
   <div class="header">
-    <h2>Secure Session Chat</h2>
+    <div class="brand-section">
+      <pre class="ascii-title">
+ _  _   _   ___ _  _____ ___ 
+| || | /_\ / __| |/ / __| _ \
+| __ |/ _ \ (__| ' <| _||   /
+|_||_/_/ \_\___|_|\_\___|_|_\</pre>
+      <div class="copyright-tag">(C) 2026 TEAM-GRAY. ALL RIGHTS RESERVED.</div>
+    </div>
+    <div class="system-metrics">
+      <div class="metric">HEAP_RAM: <span id="ramVal">--</span></div>
+      <div class="metric">CANDIDATES: <span id="iceVal">0</span></div>
+      <div class="metric">STATE: <span id="statusVal" style="color:var(--danger)">OFFLINE</span></div>
+    </div>
   </div>
 
   <div class="setup-panel">
-    <input type="text" id="username" placeholder="Display Name" maxlength="25">
-    
-    <div class="input-group">
-      <button id="hostBtn">Host Private Session</button>
+    <div class="controls-row">
+      <input type="text" id="username" placeholder="CALLSIGN" maxlength="20">
+      <button id="createOfferBtn">[1] GEN_OFFER</button>
+      <button id="createAnswerBtn">[2] ACCEPT_OFFER</button>
+      <button id="completeHandshakeBtn">[3] LINK_PEER</button>
+      <button id="copyTokenBtn">[COPY TOKEN]</button>
+      <button id="clearBtn">[CLR_LOGS]</button>
     </div>
-
-    <div class="input-group">
-      <input type="text" id="joinId" placeholder="Host Peer ID">
-      <input type="password" id="joinPasscode" placeholder="Passcode" maxlength="12">
-      <button id="joinBtn">Connect</button>
-    </div>
-
-    <div id="peerIdDisplay" class="id-display" style="display:none;">
-      <div><strong>Host ID:</strong> <span id="myPeerId">...</span></div>
-      <div><strong>Room Passcode:</strong> <span id="myPasscode">...</span></div>
-    </div>
+    <textarea id="sdpExchange" placeholder="// HANDSHAKE_TOKEN_BUFFER..."></textarea>
   </div>
 
   <div class="chat-box" id="chatBox">
-    <div class="system-msg">Set display name and host or connect to start.</div>
+    <div class="system-msg">[SYSTEM_INIT] NATIVE_WEBRTC_ENGINE_READY. ZERO_STORAGE=TRUE.</div>
+    <div class="system-msg">[LICENSE] COPYRIGHT (C) 2026 TEAM-GRAY. DISTRIBUTED UNDER MIT LICENSE.</div>
   </div>
 
   <div class="footer">
-    <input type="text" id="messageInput" placeholder="Type a message..." maxlength="1000" disabled>
-    <button id="sendBtn" disabled>Send</button>
+    <span class="prompt-label">root@team-gray-p2p:~#</span>
+    <input type="text" id="messageInput" placeholder="Enter transmission payload..." maxlength="1000" disabled>
+    <button id="sendBtn" disabled>EXEC</button>
   </div>
 </div>
 
 <script>
-  let peer = null;
-  let connections = [];
-  let hostConn = null;
-  let isHost = false;
-  let roomPasscode = null;
-  let lastSentTime = 0;
+  let pc = null;
+  let dataChannel = null;
+  let candidateCount = 0;
 
   const usernameInput = document.getElementById('username');
-  const hostBtn = document.getElementById('hostBtn');
-  const joinBtn = document.getElementById('joinBtn');
-  const joinIdInput = document.getElementById('joinId');
-  const joinPasscodeInput = document.getElementById('joinPasscode');
-  const peerIdDisplay = document.getElementById('peerIdDisplay');
-  const myPeerIdSpan = document.getElementById('myPeerId');
-  const myPasscodeSpan = document.getElementById('myPasscode');
+  const createOfferBtn = document.getElementById('createOfferBtn');
+  const createAnswerBtn = document.getElementById('createAnswerBtn');
+  const completeHandshakeBtn = document.getElementById('completeHandshakeBtn');
+  const copyTokenBtn = document.getElementById('copyTokenBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const sdpExchange = document.getElementById('sdpExchange');
   const chatBox = document.getElementById('chatBox');
   const messageInput = document.getElementById('messageInput');
   const sendBtn = document.getElementById('sendBtn');
+  const statusVal = document.getElementById('statusVal');
+  const iceVal = document.getElementById('iceVal');
+  const ramVal = document.getElementById('ramVal');
 
-  function generatePasscode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  function updateRealRAM() {
+    if (performance && performance.memory) {
+      const usedMB = (performance.memory.usedJSHeapSize / (1024 * 1024)).toFixed(1);
+      ramVal.textContent = `${usedMB}MB`;
+    } else {
+      ramVal.textContent = 'N/A';
+    }
+  }
+  updateRealRAM();
+  setInterval(updateRealRAM, 3000);
+
+  function initPeerConnection() {
+    candidateCount = 0;
+    iceVal.textContent = '0';
+
+    pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+
+    pc.oniceconnectionstatechange = () => {
+      const state = pc.iceConnectionState.toUpperCase();
+      statusVal.textContent = state;
+      
+      if (pc.iceConnectionState === 'connected') {
+        statusVal.style.color = 'var(--text)';
+        appendSystemMessage('[LINK_ESTABLISHED] ENCRYPTED_CHANNEL_ACTIVE.');
+        enableChatInput();
+      } else if (pc.iceConnectionState === 'disconnected') {
+        statusVal.style.color = 'var(--danger)';
+        appendSystemMessage('[ALERT] SIGNAL_TERMINATED_BY_REMOTE_HOST.');
+      }
+    };
   }
 
-  function initPeer(callback) {
-    if (peer) return callback();
-    peer = new Peer();
+  createOfferBtn.addEventListener('click', async () => {
+    const name = getUsername();
+    if (!name) return;
 
-    peer.on('open', (id) => {
-      myPeerIdSpan.textContent = id;
-      callback();
-    });
+    initPeerConnection();
+    dataChannel = pc.createDataChannel('chat');
+    setupDataChannel(dataChannel);
 
-    peer.on('error', (err) => {
-      appendSystemMessage(`Connection error: ${err.type}`);
-    });
-  }
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
 
-  // Host setup with passcode enforcement
-  hostBtn.addEventListener('click', () => {
-    const username = getUsername();
-    if (!username) return;
-
-    initPeer(() => {
-      isHost = true;
-      roomPasscode = generatePasscode();
-      myPasscodeSpan.textContent = roomPasscode;
-      peerIdDisplay.style.display = 'block';
-
-      lockSetup();
-      enableChatInput();
-      appendSystemMessage('Private session hosted. Share your Host ID and Passcode.');
-
-      peer.on('connection', (conn) => {
-        conn.on('open', () => {
-          // Verify Passcode authentication before granting chat access
-          if (!conn.metadata || conn.metadata.passcode !== roomPasscode) {
-            conn.send({ type: 'auth_fail', text: 'Invalid room passcode.' });
-            setTimeout(() => conn.close(), 500);
-            return;
-          }
-
-          connections.push(conn);
-          appendSystemMessage(`${conn.metadata.username} joined.`);
-          
-          conn.on('data', (data) => handleHostIncomingData(conn, data));
-          conn.on('close', () => {
-            connections = connections.filter(c => c !== conn);
-            appendSystemMessage(`${conn.metadata.username || 'A peer'} disconnected.`);
-          });
-        });
-      });
-    });
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        candidateCount++;
+        iceVal.textContent = candidateCount;
+      } else {
+        sdpExchange.value = JSON.stringify(pc.localDescription);
+        appendSystemMessage('[OFFER_GENERATED] CLICK [COPY TOKEN] AND TRANSMIT TO PEERS.');
+      }
+    };
   });
 
-  // Client connection with credential validation
-  joinBtn.addEventListener('click', () => {
-    const username = getUsername();
-    const targetId = joinIdInput.value.trim();
-    const passcode = joinPasscodeInput.value.trim().toUpperCase();
+  createAnswerBtn.addEventListener('click', async () => {
+    const name = getUsername();
+    if (!name) return;
 
-    if (!username || !targetId || !passcode) {
-      alert('Please fill in Username, Host ID, and Passcode.');
+    const rawToken = sdpExchange.value.trim();
+    if (!rawToken) {
+      alert('PASTE_OFFER_TOKEN_INTO_BUFFER_FIRST.');
       return;
     }
 
-    initPeer(() => {
-      isHost = false;
-      hostConn = peer.connect(targetId, {
-        metadata: { username, passcode }
-      });
+    initPeerConnection();
 
-      hostConn.on('open', () => {
-        lockSetup();
-        enableChatInput();
-        appendSystemMessage('Connected securely to host.');
-      });
+    pc.ondatachannel = (event) => {
+      dataChannel = event.channel;
+      setupDataChannel(dataChannel);
+    };
 
-      hostConn.on('data', (data) => {
-        if (data.type === 'auth_fail') {
-          alert(data.text);
-          hostConn.close();
-          location.reload();
-          return;
+    try {
+      const offer = JSON.parse(rawToken);
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          candidateCount++;
+          iceVal.textContent = candidateCount;
+        } else {
+          sdpExchange.value = JSON.stringify(pc.localDescription);
+          appendSystemMessage('[ANSWER_GENERATED] CLICK [COPY TOKEN] AND TRANSMIT BACK TO PEER_1.');
         }
-        handleClientIncomingData(data);
-      });
-
-      hostConn.on('close', () => appendSystemMessage('Disconnected from host.'));
-    });
+      };
+    } catch (e) {
+      alert('SYNTAX_ERROR: INVALID_OFFER_BUFFER.');
+    }
   });
 
-  function handleHostIncomingData(senderConn, data) {
-    if (data.type !== 'msg' || typeof data.text !== 'string') return;
-    
-    const cleanText = data.text.trim().substring(0, 1000);
-    const cleanSender = senderConn.metadata.username.substring(0, 25);
-    
-    if (!cleanText) return;
+  completeHandshakeBtn.addEventListener('click', async () => {
+    const rawToken = sdpExchange.value.trim();
+    if (!rawToken) {
+      alert('PASTE_ANSWER_TOKEN_INTO_BUFFER_FIRST.');
+      return;
+    }
 
-    const payload = { type: 'msg', sender: cleanSender, text: cleanText };
-    
-    // Broadcast to all connected clients
-    connections.forEach(conn => {
-      if (conn.open) conn.send(payload);
-    });
+    try {
+      const answer = JSON.parse(rawToken);
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      appendSystemMessage('[HANDSHAKE] FINALIZING_P2P_SOCKET...');
+    } catch (err) {
+      alert('SYNTAX_ERROR: INVALID_ANSWER_BUFFER.');
+    }
+  });
 
-    appendMessage(cleanSender, cleanText, false);
-  }
+  copyTokenBtn.addEventListener('click', () => {
+    if (!sdpExchange.value.trim()) {
+      alert('NO_TOKEN_IN_BUFFER_TO_COPY.');
+      return;
+    }
+    sdpExchange.select();
+    navigator.clipboard.writeText(sdpExchange.value);
+    appendSystemMessage('[SYSTEM] TOKEN_COPIED_TO_CLIPBOARD.');
+  });
 
-  function handleClientIncomingData(data) {
-    if (data.type !== 'msg') return;
-    const currentUsername = usernameInput.value.trim();
-    const isSelf = data.sender === currentUsername;
-    appendMessage(isSelf ? 'You' : data.sender, data.text, isSelf);
+  clearBtn.addEventListener('click', () => {
+    chatBox.innerHTML = '<div class="system-msg">[SYSTEM_LOGS_PURGED]</div>';
+  });
+
+  function setupDataChannel(channel) {
+    channel.onopen = () => {
+      enableChatInput();
+    };
+
+    channel.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'msg') {
+          appendMessage(data.sender, data.text, false);
+        }
+      } catch (e) {}
+    };
   }
 
   sendBtn.addEventListener('click', sendMessage);
@@ -324,38 +466,28 @@
   });
 
   function sendMessage() {
-    const now = Date.now();
-    if (now - lastSentTime < 300) return; // Rate limiting (max 1 msg per 300ms)
-    
     const text = messageInput.value.trim().substring(0, 1000);
-    if (!text) return;
+    if (!text || !dataChannel || dataChannel.readyState !== 'open') return;
 
-    lastSentTime = now;
-    const username = usernameInput.value.trim().substring(0, 25);
+    const username = usernameInput.value.trim().substring(0, 20);
     const payload = { type: 'msg', sender: username, text: text };
 
-    if (isHost) {
-      connections.forEach(conn => { if (conn.open) conn.send(payload); });
-      appendMessage('You', text, true);
-    } else if (hostConn && hostConn.open) {
-      hostConn.send(payload);
-    }
-
+    dataChannel.send(JSON.stringify(payload));
+    appendMessage(username, text, true);
     messageInput.value = '';
   }
 
-  // Safe DOM Rendering (Protects against DOM XSS)
   function appendMessage(sender, text, isSelf) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${isSelf ? 'sent' : 'received'}`;
 
-    const senderDiv = document.createElement('div');
-    senderDiv.className = 'sender';
-    senderDiv.textContent = sender;
+    const senderSpan = document.createElement('span');
+    senderSpan.className = 'sender';
+    senderSpan.textContent = `<${sender}>:`;
 
-    const textNode = document.createTextNode(text);
+    const textNode = document.createTextNode(` ${text}`);
 
-    msgDiv.appendChild(senderDiv);
+    msgDiv.appendChild(senderSpan);
     msgDiv.appendChild(textNode);
     chatBox.appendChild(msgDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -370,20 +502,12 @@
   }
 
   function getUsername() {
-    const name = usernameInput.value.trim().substring(0, 25);
+    const name = usernameInput.value.trim().substring(0, 20);
     if (!name) {
-      alert('Please enter a display name.');
+      alert('SET_CALLSIGN_BEFORE_INITIATING.');
       return null;
     }
     return name;
-  }
-
-  function lockSetup() {
-    hostBtn.disabled = true;
-    joinBtn.disabled = true;
-    usernameInput.disabled = true;
-    joinIdInput.disabled = true;
-    joinPasscodeInput.disabled = true;
   }
 
   function enableChatInput() {
